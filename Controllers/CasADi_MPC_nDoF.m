@@ -1,4 +1,4 @@
-classdef CasADi_MPC_nDoF < matlab.System
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                classdef CasADi_MPC_nDoF < matlab.System
     properties (Nontunable)
         vehicle = Vehicle(100000,30,60,deg2rad(20),800000,2000000, Name = "Default")
 

@@ -29,7 +29,7 @@ classdef DoF
             if nx == 6
                 obj.constraints = {@(x, u, vehicle) u(:, 2).^2 <= vehicle.max_gimbal^2};
             else
-                obj.constraints = {@(x, u, vehicle) u(:, ithrust(1)) > cos(vehicle.max_gimbal)};
+                obj.constraints = {@(x, u, vehicle) u(:, ithrust(1)) > cos(vehicle.max_gimbal) ./ vecnorm(u, 2, 2)};
             end
         end
     end

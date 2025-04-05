@@ -49,7 +49,7 @@ x_dot = [r_dot; v_dot; thetadot; w_dot];
 j_a = jacobian(x_dot, x);
 j_b = jacobian(x_dot, u);
 
-vars = [x; u; mass; L; MOI; max_thrust];
+vars = [{x}; {u}; {mass; L; MOI; max_thrust}];
 
 % Create equations of motion function for optimizer
 matlabFunction(x_dot,"File","Dynamics Models/6DoF/SymDynamicsEuler6DoF","Vars",vars);

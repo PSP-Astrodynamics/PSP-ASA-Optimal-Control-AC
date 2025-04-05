@@ -5,5 +5,6 @@ classdef ControllerType < Simulink.IntEnumType
         CasADi_freetf(2),
         CasADi_delay(3),
         CasADi_freetf_delay(4),
+        CasADi_freetf_freefinal_6DOF(5)
     end
 end
