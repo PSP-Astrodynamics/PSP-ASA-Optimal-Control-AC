@@ -41,8 +41,16 @@ theta_f = [0; deg2rad(90); 0]; % [rad]
 R_f = angle2dcm(theta_f(1), theta_f(2), theta_f(3));
 q_f = qexp(RLog(R_f));
 
-x_0 = [r_0; v_0; q_0; w_0; m_0];
-x_f = [[0; 0; 30] * 1e-3; [0; 0; -1] * 1e-3; q_f; zeros(3, 1)];
+x_0 = [r_0; v_0; q_0; w_0, m_0];
+%x_f = [[0; 0; 30] * 1e-3; [0; 0; -1] * 1e-3; q_f; zeros(3, 1)];
+ref = load("reference.mat")
+x_ref = ref.ref_sol.x_ref_sol
+u_ref = ref.ref_sol.u_ref_sol
+t_ref = ref.ref_sol.t_ref
+p_ref = ref.ref_sol.p_ref_sol
+
+x_f = x_ref(:, end)
+
 
 tspan = [0, tf];
 t_k = linspace(tspan(1), tspan(2), N);
@@ -85,12 +93,12 @@ f = @(t, x, u, p) SymDynamicsQuat6DoF_localrot_noumag(x, u, L, I, alpha, g);
 
 %% Specify Constraints
 % Convex state path constraints
-glideslope_constraint = {1:N, @(t, x, u, p) norm(x(1:3)) - x(3) / cos(glideslope_angle_max)};
+%glideslope_constraint = {1:N, @(t, x, u, p) norm(x(1:3)) - x(3) / cos(glideslope_angle_max)};
 mass_constraint = {1:N, @(t, x, u, p) m_dry - x(14)};
 angular_velocity_constraint = {1:N, @(t, x, u, p) norm(x(11:13), Inf) - norm([w_0; deg2rad(20)], Inf)};
 flipper_constraint = {round(N / 2), @(t, x, u, p) -x(12) + deg2rad(5)};
 
-state_convex_constraints = {glideslope_constraint, mass_constraint, angular_velocity_constraint};
+state_convex_constraints = {mass_constraint, angular_velocity_constraint};
 
 % Convex control constraints
 max_thrust_constraint = {1:N, @(t, x, u, p) norm(u(1:3)) - T_max};
@@ -127,13 +135,22 @@ terminal_bc = @(x, p, x_ref, p_ref) [x(1:13) - x_f; 0];
 %terminal_bc = @(x, p, x_ref, p_ref) [x([1:6, 11:13], :) - x_f([1:6, 11:13]); x(7) - x(9); x(8) + x(10); 0; 0; 0];
 
 %% Specify Objective
-min_fuel_angular_velocity_objective = @(x, u, p) sum(u(3, :) / T_max + x(6, 1:Nu) .^ 2) * delta_t;
-if u_hold == "ZOH"
-    min_fuel_objective = @(x, u, p) -x(14, end) / m_0 + sum(abs(u(4, :)));
-elseif u_hold == "FOH"
-    min_fuel_objective = @(x, u, p) -x(14, end) / m_0 + sum(abs(u(4, :))) + 0 * sum(abs(x(11, :)));% + sum_square(u(4, :)); %sum((u(4, 1:(end - 1)) + u(4, 2:end)) / 2) * delta_t;
-end
+%min_fuel_angular_velocity_objective = @(x, u, p) sum(u(3, :) / T_max + x(6, 1:Nu) .^ 2) * delta_t;
+%if u_hold == "ZOH"
+%    min_fuel_objective = @(x, u, p) -x(14, end) / m_0 + sum(abs(u(4, :)));
+%elseif u_hold == "FOH"
+%    min_fuel_objective = @(x, u, p) -x(14, end) / m_0 + sum(abs(u(4, :))) + 0 * sum(abs(x(11, :)));% + sum_square(u(4, :)); %sum((u(4, 1:(end - 1)) + u(4, 2:end)) / 2) * delta_t;
+%end
 
+%% MPC Objective
+   
+%Start with "Bryson's Rule" (initialize to the penalize from ref) (use
+%instantaneous xref value)
+Q = @(xref) arrayfun(@(k) (@(xref_inst) diag(1./(xref_inst.^2))), 1:size(xref, 2))
+R = @(uref) arrayfun(@(k) (@(uref_inst) diag(1./(uref_inst.^2))), 1:size(uref, 2))
+P = @(xref_f) diag(1./(xref_f.^2))
+
+objective = @(x, xref, u, uref) sum(quad_form((x_0-xref), Q(xref))) + sum(quad_form((u-uref), R(uref))) + quad_form((x(:, end) - xref(:, end)), P) - x(14:end)
 
 
 %% Create Guess
@@ -180,7 +197,8 @@ end
 
 
 %% Construct Problem Object
-prob_6DoF = DeterministicProblem(x_0, x_f, N, u_hold, tf, f, guess, convex_constraints, min_fuel_objective, scale = scale, scale_hint = scale_hint, terminal_bc = terminal_bc, nonconvex_constraints = nonconvex_constraints, discretization_method = "error", N_sub = 1);
+prob_6DoF = DeterministicProblem(x_0, x_f, N, u_hold, tf, f, guess, convex_constraints, ...
+    objective, scale = scale, scale_hint = scale_hint, terminal_bc = {}, nonconvex_constraints = nonconvex_constraints, discretization_method = "error", N_sub = 1);
 
 %% Test Scaling
 % guess_scaled.x = prob_3DoF.scale_x(guess.x);
