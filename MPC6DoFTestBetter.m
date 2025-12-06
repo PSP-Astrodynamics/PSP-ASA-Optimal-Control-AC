@@ -41,15 +41,21 @@ theta_f = [0; deg2rad(90); 0]; % [rad]
 R_f = angle2dcm(theta_f(1), theta_f(2), theta_f(3));
 q_f = qexp(RLog(R_f));
 
-x_0 = [r_0; v_0; q_0; w_0, m_0];
+x_0 = [r_0; v_0; q_0; w_0; m_0];
 %x_f = [[0; 0; 30] * 1e-3; [0; 0; -1] * 1e-3; q_f; zeros(3, 1)];
-ref = load("reference.mat")
-x_ref = ref.ref_sol.x_ref_sol
-u_ref = ref.ref_sol.u_ref_sol
-t_ref = ref.ref_sol.t_ref
-p_ref = ref.ref_sol.p_ref_sol
+ref = load("reference.mat");
+t_ref = ref.ref_sol.t_ref;
+steps = linspace(0,tf, N-1);
+steps = round(steps);
+x_ref = ref.ref_sol.x_ref_sol(:,find(ismember(t_ref,steps)));
+u_ref = ref.ref_sol.u_ref_sol(:,find(ismember(t_ref,steps)));
+p_ref = ref.ref_sol.p_ref_sol;
 
-x_f = x_ref(:, end)
+disp(size(x_ref))
+
+%fprintf("%f this is x_ref", x_ref)
+
+x_f = x_ref(:, end);
 
 
 tspan = [0, tf];
@@ -146,14 +152,15 @@ terminal_bc = @(x, p, x_ref, p_ref) [x(1:13) - x_f; 0];
    
 %Start with "Bryson's Rule" (initialize to the penalize from ref) (use
 %instantaneous xref value)
-Q = @(xref) arrayfun(@(k) (@(xref_inst) diag(1./(xref_inst.^2))), 1:size(xref, 2))
-R = @(uref) arrayfun(@(k) (@(uref_inst) diag(1./(uref_inst.^2))), 1:size(uref, 2))
-P = @(xref_f) diag(1./(xref_f.^2))
+Q = @(xref) arrayfun(@(k) (@(xref_inst) diag(1./(xref_inst.^2))), 1:size(xref, 2));
+R = @(uref) arrayfun(@(k) (@(uref_inst) diag(1./(uref_inst.^2))), 1:size(uref, 2));
+P = @(xref_f) diag(1./(xref_f.^2));
 
-objective = @(x, xref, u, uref) sum(quad_form((x_0-xref), Q(xref))) + sum(quad_form((u-uref), R(uref))) + quad_form((x(:, end) - xref(:, end)), P) - x(14:end)
+objective = @(x, xref, u, uref) sum(quad_form((x_0-xref), Q(xref))) + sum(quad_form((u-uref), R(uref))) + quad_form((x(:, end) - xref(:, end)), P) - x(14:end);
 
 
 %% Create Guess
+%{
 if initial_guess == "linear 3DoF"
     [X_6DoF, U_6DoF] = Deterministic_3DoF_linear_func(x_0, tf, N, T_max, T_min, alpha, L, glideslope_angle_max, u_hold, g);
     lin_guess.x = X_6DoF;
@@ -181,7 +188,37 @@ if u_hold == "ZOH"
 elseif u_hold == "FOH"
     guess.u = interp1(t_k(1:size(guess.u, 2)), guess.u', t_k(1:Nu), "linear","extrap")';
 end
+%}
+%% Create Guess
+%{
+if initial_guess == "linear 3DoF"
+    [X_6DoF, U_6DoF] = Deterministic_3DoF_linear_func(x_0, tf, N, T_max, T_min, alpha, L, glideslope_angle_max, u_hold, g);
+    lin_guess.x = X_6DoF;
+    lin_guess.u = U_6DoF;
+    lin_guess.p = [];
 
+    guess = lin_guess;
+elseif initial_guess == "straight line"
+    sl_guess = guess_6DoF(x_0, x_f, N, Nu, delta_t, vehicle);
+    
+    %CasADi_sol = CasADi_solve_6DoF(x_0, x_f, sl_guess.x, sl_guess.u, vehicle, N, delta_t, glideslope_angle_max);
+    sl_guess.x(4:6, 1) = x_0(4:6);
+    sl_guess.u(1:3, :) = sl_guess.u(1:3, :) * T_max * 0.8;
+    sl_guess.u = sl_guess.u([1, 2, 3, 5], :) + 1e-12;
+    if u_hold == "ZOH"
+        sl_guess.x = [sl_guess.x; m_0 - alpha * [cumsum(vecnorm(sl_guess.u(1:3, :)) * delta_t), sum(vecnorm(sl_guess.u(1:3, :))) * delta_t]];
+    elseif u_hold == "FOH"
+        sl_guess.x = [sl_guess.x; m_0 - alpha * [0, cumsum(vecnorm(sl_guess.u(1:3, 2:end)) * delta_t)]];
+    end
+
+    guess = sl_guess;
+end
+if u_hold == "ZOH"
+    guess.u = interp1(t_k(1:size(guess.u, 2)), guess.u', t_k(1:Nu), "previous","extrap")';
+elseif u_hold == "FOH"
+    guess.u = interp1(t_k(1:size(guess.u, 2)), guess.u', t_k(1:Nu), "linear","extrap")';
+end
+%}
 %%
 % figure
 % plot_6DoF_trajectory(t_k, sl_guess.x, sl_guess.u, glideslope_angle_max, gimbal_max, T_min, T_max)
@@ -197,6 +234,15 @@ end
 
 
 %% Construct Problem Object
+
+%Instead of using a straight line, we are just using ref and assuming small
+%deviation
+
+guess.x = x_ref;
+guess.u = u_ref;
+guess.p = p_ref;
+guess
+
 prob_6DoF = DeterministicProblem(x_0, x_f, N, u_hold, tf, f, guess, convex_constraints, ...
     objective, scale = scale, scale_hint = scale_hint, terminal_bc = {}, nonconvex_constraints = nonconvex_constraints, discretization_method = "error", N_sub = 1);
 
