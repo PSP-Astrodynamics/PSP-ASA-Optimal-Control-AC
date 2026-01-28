@@ -57,8 +57,12 @@ cvx_begin quiet
         v_prime >= 0;
 
         % Boundary Conditions
-        prob.initial_bc(prob.unscale_x(X(:, 1)), 0) + v_0 == 0;
+        prob.initial_bc(prob.unscale_x(X(:, 1)), 0) + v_0 * ptr_ops.include_v_0 == 0;
         prob.terminal_bc(prob.unscale_x(X(:, prob.N)), 0, prob.unscale_x(x_ref(:, prob.N)), 0) + v_N == 0;
+
+        if ptr_ops.include_u_0
+            u_ref(:, 1) == U(:, 1); % Set initial control
+        end
 
         % Trust Region Constraints
         %norm(eta) <= 5e-1;

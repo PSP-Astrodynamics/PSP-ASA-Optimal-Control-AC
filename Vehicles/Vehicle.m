@@ -5,7 +5,7 @@ classdef Vehicle
     properties
         m (1, 1) double % [kg]
         L (1, 1) double % [m]
-        I (1, 1) double % [kg m2]
+        I double % [kg m2]
         Len (1,1) double % [m]
         max_gimbal (1, 1) double % [rad]
         min_thrust (1, 1) double % [N]

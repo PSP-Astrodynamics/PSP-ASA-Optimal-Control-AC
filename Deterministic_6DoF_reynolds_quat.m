@@ -70,6 +70,8 @@ ptr_ops.q = 2;
 ptr_ops.alpha_x = 1;
 ptr_ops.alpha_u = 1;
 ptr_ops.alpha_p = 0;
+ptr_ops.include_v_0 = 1;
+ptr_ops.include_u_0 = 0;
 
 scale = true;
 

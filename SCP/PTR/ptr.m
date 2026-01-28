@@ -93,10 +93,12 @@ ptr_sol.p = prob.unscale_p(p_ref);
 end
 
 function [w_tr] = update_trust_region_weights(Delta, update, w_tr, Delta_min)
-    w_tr_update = 1 ./ abs(Delta) .* (abs(Delta) >= Delta_min) ...
-             + 1 / Delta_min * (abs(Delta) < Delta_min);
-
-    w_tr = update .* w_tr_update + ~update .* w_tr;
+    if update
+        w_tr = 1 ./ abs(Delta) .* (abs(Delta) >= Delta_min) ...
+                 + 1 / Delta_min * (abs(Delta) < Delta_min);
+    else
+        w_tr = w_tr;
+    end
 end
 
 function [delta_xp] = ptr_stopping(X, p, x_ref, p_ref, q)
