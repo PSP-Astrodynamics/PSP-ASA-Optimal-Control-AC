@@ -82,7 +82,8 @@ f = @(t, x, u, p) SymDynamicsAstra(x, u, L, m_0, I, alpha, g);
 % Convex state path constraints
 glideslope_constraint = {1:N, @(t, x, u, p) norm(x(1:3)) - x(3) / cos(glideslope_angle_max)};
 angular_velocity_constraint = {1:N, @(t, x, u, p) norm(x(11:13), Inf) - norm([w_0; deg2rad(20)], Inf)};
-flipper_constraint = {round(N / 2), @(t, x, u, p) -x(12) + deg2rad(5)};
+flipper_constraint = {round(N / 2), @(t, x, u, p) -x(12) + deg2rad(5)}; 
+    %t - time, x - state (pos vel ang,. quat), u - [thrust, gimbal), p - roll torque; astra includes thrust 
 
 state_convex_constraints = {glideslope_constraint, angular_velocity_constraint};
 
