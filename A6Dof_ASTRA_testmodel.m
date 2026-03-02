@@ -23,8 +23,7 @@ g = 1.62e-3;
 time_min_max_thrust = 3; % [s] time to throttle from min to max thrust
 max_gimbal_rate = 10; % [deg / s] max rate of change of gimbal angle
 
-vehicle = Vehicle(m_dry, L, L * 3, gimbal_max, T_min, T_max, I=I);
-
+vehicle = Vehicle(m_dry, L, L * 3, gimbal_max, T_min, T_max);
 
 % Problem Parameters
 tf = 35; % [s]
@@ -33,9 +32,7 @@ r_0 = [250; -100; 433] * 1e-3; % [km]
 v_0 = [0; 0; -35] * 1e-3; % [km / s]
 theta_0 = [deg2rad(0); deg2rad(90); deg2rad(0)]; % [rad]
 initial_roll = deg2rad(0);
-%R_0 = make_R(initial_roll, 3) * angle2dcm(theta_0(1), theta_0(2), theta_0(3));
-R_0 = eul2rotm([initial_roll, 0, 0]) * angle2dcm(theta_0(1), theta_0(2), theta_0(3));
-
+R_0 = make_R(initial_roll, 3) * angle2dcm(theta_0(1), theta_0(2), theta_0(3));
 q_0 = qexp(RLog(R_0));
 w_0 = deg2rad([0; 0; 0]); % [rad / s]
 glideslope_angle_max = deg2rad(65); % [rad]
@@ -92,6 +89,8 @@ glideslope_constraint = {1:N, @(t, x, u, p) norm(x(1:3)) - x(3) / cos(glideslope
 mass_constraint = {1:N, @(t, x, u, p) m_dry - x(14)};
 angular_velocity_constraint = {1:N, @(t, x, u, p) norm(x(11:13), Inf) - norm([w_0; deg2rad(20)], Inf)};
 flipper_constraint = {round(N / 2), @(t, x, u, p) -x(12) + deg2rad(5)};
+%t - time, x - state (pos vel ang,. quat), u - [thrust, gimbal), p - roll torque; astra includes thrust 
+
 
 state_convex_constraints = {glideslope_constraint, mass_constraint, angular_velocity_constraint};
 
@@ -504,3 +503,14 @@ w_0_6DoF = w_0;
 
 x_0_6DoF = x_0;
 I_matrix = diag(I);
+
+
+
+%%%%%%%%%%%%%%%%%%%%%
+
+%% ALEX WORK
+% 
+% %%%% Landing Parameters
+% Set a cone to match takeoff-landing coordinates (cone centered at an origin) 
+% State model should check current location while passing through, have a condition that checks on each iteration if it is within the bounds of this decreasing cone (landing) 
+% or increasing cone (taking off)
