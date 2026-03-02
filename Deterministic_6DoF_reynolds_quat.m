@@ -23,7 +23,7 @@ g = 1.62e-3;
 time_min_max_thrust = 3; % [s] time to throttle from min to max thrust
 max_gimbal_rate = 10; % [deg / s] max rate of change of gimbal angle
 
-vehicle = Vehicle(m_dry, L, L * 3, gimbal_max, T_min, T_max, I = I);
+vehicle = Vehicle(m_dry, L, L * 3, gimbal_max, T_min, T_max);
 
 % Problem Parameters
 tf = 35; % [s]
