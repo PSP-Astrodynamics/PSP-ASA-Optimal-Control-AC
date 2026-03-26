@@ -28,7 +28,7 @@ vehicle = Vehicle(m_dry, L, L * 3, gimbal_max, T_min, T_max);
 % Problem Parameters
 tf = 35; % [s]
 N = 15; % []
-r_0 = [250; -100; 433] * 1e-3; % [km]
+r_0 = [300; -100; 500] * 1e-3; % [km]
 v_0 = [0; 0; -35] * 1e-3; % [km / s]
 theta_0 = [deg2rad(0); deg2rad(90); deg2rad(0)]; % [rad]
 initial_roll = deg2rad(0);
@@ -348,8 +348,16 @@ i = ptr_sol.converged_i;
 
 [t_cont_sol, x_cont_sol, u_cont_sol] = prob_6DoF.cont_prop(ptr_sol.u(:, :, i), ptr_sol.p(:, i));
 
+results.t = t_k; 
+
 figure
 plot_6DoFq_trajectory(t_k, ptr_sol.x(:, :, i), ptr_sol.u(:, :, i), glideslope_angle_max, gimbal_max, T_min, T_max, step = 1)
+
+results.x =  ptr_sol.x(:, :, i); 
+
+results.u = ptr_sol.u(:, :, i); 
+%%% saving results
+save("Results_ptr2.mat", "results")
 
 figure
 comparison_plot_6DoF_trajectory({guess.x, x_cont_sol, ptr_sol.x(:, :, i)}, ["Guess", "Continuous Propagation", "Solution Output"], glideslope_angle_max, linestyle = [":", "-", "--", "-"], title = "Continuous vs Discrete Propagation of Solution")
