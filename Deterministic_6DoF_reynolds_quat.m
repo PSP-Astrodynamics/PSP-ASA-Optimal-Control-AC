@@ -182,6 +182,8 @@ end
 %% Construct Problem Object
 prob_6DoF = DeterministicProblem(x_0, x_f, N, u_hold, tf, f, guess, convex_constraints, min_fuel_objective, scale = scale, scale_hint = scale_hint, terminal_bc = terminal_bc, nonconvex_constraints = nonconvex_constraints, discretization_method = "error", N_sub = 1);
 
+ save("prob_6DoF", "prob_6DoF");
+
 %% Test Scaling
 % guess_scaled.x = prob_3DoF.scale_x(guess.x);
 % guess_scaled.u = prob_3DoF.scale_u(guess.u);
