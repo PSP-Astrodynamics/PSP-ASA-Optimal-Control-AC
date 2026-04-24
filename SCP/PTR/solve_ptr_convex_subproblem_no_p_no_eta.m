@@ -35,26 +35,44 @@ cvx_begin quiet
         end
 
         % Constraints
-        for k = 1:prob.Nu
+          for k = 1:prob.Nu
             % Convex Constraints
             for cc = 1:prob.n.cvx
                 cc_k = prob.convex_constraints{cc}{1};
+                cvx_constraint_type = prob.convex_constraints{cc}{2};
                 if ismember(k, cc_k)
-                    cvx_constraint_func = prob.convex_constraints{cc}{2};
-                    cvx_constraint_func(t_k(k), prob.unscale_x(X(:, k)), prob.unscale_u(U(:, k)), 0) <= 0;
+                    cvx_constraint_func = prob.convex_constraints{cc}{3};
+                    if cvx_constraint_type == "<="
+                        cvx_constraint_func(t_k(k), prob.unscale_x(X(:, k)), prob.unscale_u(U(:, k)), 0) <= 0;
+                    end
+                    if cvx_constraint_type == "=="
+                        cvx_constraint_func(t_k(k), prob.unscale_x(X(:, k)), prob.unscale_u(U(:, k)), 0) == 0;
+                    end
                 end
             end
             % Nonconvex Constraints
             for nc = 1:prob.n.ncvx
                 nc_k = prob.nonconvex_constraints{nc}{1};
+                ncvx_constraint_type = prob.nonconvex_constraints{nc}{2};
                 if ismember(k, nc_k)
-                    ncvx_constraint_func = prob.nonconvex_constraints{nc}{2};
-                    ncvx_constraint_func(t_k(k), prob.unscale_x(X), prob.unscale_u(U), 0, prob.unscale_x(x_ref), prob.unscale_u(u_ref), 0, k) ...
+                    ncvx_constraint_func = prob.nonconvex_constraints{nc}{3};
+                    if ncvx_constraint_type == "<="
+                        ncvx_constraint_func(t_k(k), prob.unscale_x(X), prob.unscale_u(U), 0, prob.unscale_x(x_ref), prob.unscale_u(u_ref), 0, k) ...
                         - v_prime(nc) <= 0;
+                        v_prime(nc) >= 0; 
+                       
+                    end
+                    if ncvx_constraint_type == "=="
+                         ncvx_constraint_func(t_k(k), prob.unscale_x(X), prob.unscale_u(U), 0, prob.unscale_x(x_ref), prob.unscale_u(u_ref), 0, k) ...
+                        - v_prime(nc) == 0;
+                        
+                    end  
                 end
+               
             end
+
         end
-        v_prime >= 0;
+        
 
         % Boundary Conditions
         prob.initial_bc(prob.unscale_x(X(:, 1)), 0) + v_0 == 0;
