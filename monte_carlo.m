@@ -18,11 +18,11 @@ std_vec = [position_std; velocity_std; orien_std; w_velo_std; mass_std];
 
 new_problem = problem;
 
-num = 1;       % no. of iterations
+num = 100;       % no. of iterations
 noise = std_vec .* randn(13,num);   % no mean 
 
 % 
-new_x0 = add_noise(test_1.x(:,1), zeros(size(noise)));
+new_x0 = add_noise(test_1.x(:,1), noise*1e-0);
 
 time = linspace(0, problem.tf, 1000); 
 x = zeros(14,numel(time), num); 
@@ -41,8 +41,7 @@ glideslope_angle_max = deg2rad(65);
 % 
 
 for i = 1 : num 
-
-    new_problem.x0 = new_x0(:,i) ;% new x0 with deviation
+    new_problem.x0 = new_x0(:,i); % new x0 with deviation
     [~,x,~] = new_problem.cont_prop(test_1.u , []);
     x_cell(end + 1) = {x};
 end 
